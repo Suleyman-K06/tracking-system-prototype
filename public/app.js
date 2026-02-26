@@ -10,27 +10,63 @@ let deviceVisibility = {};
 let currentLevelId = null;
 
 // Data Fetching
+
+/**
+ * Fetches all access point data for a given level from the API.
+ * @param {number} levelId - The level ID to fetch access points for. If not provided, fetches all access points.
+ * @returns {Promise<Array>} Array of access point objects containing coordinates and identifiers.
+ */
 async function fetchAccessPoints(levelId) {
     return d3.json(`${API_BASE}/access-points${levelId ? `?levelId=${levelId}` : ''}`);
 }
 
+/**
+ * Fetches all device readings (signal data) from the API.
+ * @param {number} levelId - Optional level ID to filter readings by specific level.
+ * @returns {Promise<Array>} Array of device readings with signal strength and timestamp information.
+ */
 async function fetchDeviceReadings(levelId) {
     return d3.json(`${API_BASE}/device-readings${levelId ? `?levelId=${levelId}` : ''}`);
 }
 
+/**
+ * Fetches room layout and boundary data for a given level.
+ * @param {number} levelId - The level ID to fetch rooms for.
+ * @returns {Promise<Array>} Array of room objects containing coordinates, dimensions, and names.
+ */
 async function fetchRooms(levelId) {
     return d3.json(`${API_BASE}/rooms${levelId ? `?levelId=${levelId}` : ''}`);
 }
 
+/**
+ * Fetches all building levels from the API.
+ * @returns {Promise<Array>} Array of level objects containing floor information.
+ */
 async function fetchLevels() {
     return d3.json(`${API_BASE}/levels`);
 }
 
 // Utility Functions
+
+/**
+ * Converts RSSI (Received Signal Strength Indicator) to estimated distance.
+ * Uses the free space path loss model formula for wireless signal propagation.
+ * @param {number} rssi - The RSSI value in dBm.
+ * @param {number} tx - Transmit power in dBm (defaults to RSSI_TX_POWER constant).
+ * @param {number} n - Path loss exponent for the environment (defaults to PATH_LOSS_EXPONENT constant).
+ * @returns {number} Estimated distance in scaled units.
+ */
 function rssiToDistance(rssi, tx = RSSI_TX_POWER, n = PATH_LOSS_EXPONENT) {
     return Math.pow(10, (tx - rssi) / (10 * n)) * DISTANCE_SCALE;
 }
 
+/**
+ * Determines which room a given coordinate position falls within.
+ * @param {number} x - The x-coordinate to check.
+ * @param {number} y - The y-coordinate to check.
+ * @param {Array} rooms - Array of room objects containing boundary information.
+ * @returns {string} The name of the room containing the position, or "Outside" if no match.
+ */
 function getRoomForPosition(x, y, rooms) {
     for (const room of rooms) {
         if (x >= room.x && x <= room.x + room.width && y >= room.y && y <= room.y + room.height) {
@@ -40,6 +76,14 @@ function getRoomForPosition(x, y, rooms) {
     return "Outside";
 }
 
+/**
+ * Calculates device position using trilateration from three reference points.
+ * Uses the least squares method to find the intersection point of three circles.
+ * @param {Object} p1 - First reference point with properties {x, y, d} where d is distance.
+ * @param {Object} p2 - Second reference point with properties {x, y, d}.
+ * @param {Object} p3 - Third reference point with properties {x, y, d}.
+ * @returns {Object|null} Calculated position as {x, y}, or null if triangulation fails.
+ */
 function trilaterate(p1, p2, p3) {
     const { x: xa, y: ya, d: ra } = p1;
     const { x: xb, y: yb, d: rb } = p2;
@@ -61,6 +105,14 @@ function trilaterate(p1, p2, p3) {
     };
 }
 
+/**
+ * Computes the final position of a device based on signal readings from multiple access points.
+ * Filters signals for validity and applies trilateration to estimate coordinates.
+ * @param {Array} accessPoints - Array of access point objects with location data.
+ * @param {Array} signals - Array of signal readings from the device to different access points.
+ * @param {Array} rooms - Array of room objects for position validation.
+ * @returns {Object|null} Computed device position as {x, y}, or null if position is invalid or outside rooms.
+ */
 function computeDevicePosition(accessPoints, signals, rooms) {
     if (signals.length < 3) return null;
 
@@ -84,10 +136,22 @@ function computeDevicePosition(accessPoints, signals, rooms) {
     return pos;
 }
 
+/**
+ * Filters device readings to only include those from a specific building level.
+ * @param {Array} readings - Array of device reading objects.
+ * @param {number} levelId - The level ID to filter by.
+ * @returns {Array} Filtered array containing only readings from the specified level.
+ */
 function filterReadingsByLevel(readings, levelId) {
-    return readings.filter(r => r.levelId == levelId);
+    return readings.filter(r => r.levelId === levelId);
 }
 
+/**
+ * Extracts the most recent reading for each unique device from a collection of readings.
+ * Useful for displaying current device positions without historical data.
+ * @param {Array} readings - Array of device reading objects with timestamp information.
+ * @returns {Array} Array of latest readings, one per device ID.
+ */
 function getLatestReadings(readings) {
     const latest = {};
     readings.forEach(reading => {
@@ -99,6 +163,13 @@ function getLatestReadings(readings) {
 }
 
 // Visualization Functions
+
+/**
+ * Renders room boundaries and labels on the D3 SVG canvas.
+ * Creates rectangles for each room with associated text labels.
+ * @param {D3Selection} g - The D3 SVG group element to append room visualizations to.
+ * @param {Array} rooms - Array of room objects containing coordinates, dimensions, and names.
+ */
 function drawRooms(g, rooms) {
     g.selectAll('rect.room')
         .data(rooms)
@@ -126,6 +197,12 @@ function drawRooms(g, rooms) {
         .text(d => d.name);
 }
 
+/**
+ * Renders access point locations and identifiers on the D3 SVG canvas.
+ * Displays access points as circles with identification labels.
+ * @param {D3Selection} g - The D3 SVG group element to append access point visualizations to.
+ * @param {Array} accessPoints - Array of access point objects containing location coordinates and IDs.
+ */
 function drawAccessPoints(g, accessPoints) {
     g.selectAll('circle.ap')
         .data(accessPoints)
@@ -149,11 +226,26 @@ function drawAccessPoints(g, accessPoints) {
 }
 
 // Sidebar Functions
+
+/**
+ * Initializes the sidebar toggle button functionality and icon state management.
+ * Sets up click listeners and ensures icons display correctly on page load.
+ * The function updates icons to match the sidebar's collapsed/expanded state.
+ */
 function initSidebarToggle() {
     const sidebar = document.getElementById('sidebar');
     const toggle = document.getElementById('sidebarToggle');
     const openIcon = document.querySelector('.open-icon');
     const closeIcon = document.querySelector('.close-icon');
+
+    // Set initial icon state based on sidebar's current state
+    if (sidebar.classList.contains('collapsed')) {
+        openIcon.style.display = 'none';
+        closeIcon.style.display = 'block';
+    } else {
+        openIcon.style.display = 'block';
+        closeIcon.style.display = 'none';
+    }
 
     toggle.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
@@ -167,6 +259,11 @@ function initSidebarToggle() {
     });
 }
 
+/**
+ * Initializes the level/floor selector interface in the level picker panel.
+ * Creates clickable level items and manages the active level selection state.
+ * @param {Array} levels - Array of level objects containing floor numbers and names.
+ */
 function initLevelSelector(levels) {
     const levelList = document.getElementById('levelList');
     levelList.innerHTML = '';
@@ -196,6 +293,11 @@ function initLevelSelector(levels) {
     });
 }
 
+/**
+ * Handles switching between different building levels.
+ * Fetches level-specific data, updates visualizations, and refreshes the device display.
+ * @param {number} levelId - The ID of the level to switch to.
+ */
 async function switchLevel(levelId) {
     try {
         const [aps, allReads, reads, rooms] = await Promise.all([
@@ -214,7 +316,7 @@ async function switchLevel(levelId) {
         // Update active level in picker
         document.querySelectorAll('.level-item').forEach(item => {
             item.classList.remove('active');
-            if (item.dataset.levelId == levelId) {
+            if (item.dataset.levelId === levelId) {
                 item.classList.add('active');
             }
         });
@@ -233,6 +335,11 @@ async function switchLevel(levelId) {
     }
 }
 
+/**
+ * Updates the device list in the sidebar with visibility toggle checkboxes.
+ * Sorts devices alphabetically and includes device ID information.
+ * @param {Array} readings - Array of device readings to populate the sidebar.
+ */
 function updateSidebar(readings) {
     const devices = getLatestReadings(readings).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -275,6 +382,18 @@ function updateSidebar(readings) {
 }
 
 // Device Plotting
+
+/**
+ * Renders all device positions on the canvas based on their calculated coordinates.
+ * Handles visibility filtering, tooltips on hover, and search result highlighting.
+ * @param {D3Selection} g - The D3 SVG group element to render devices on.
+ * @param {Array} readings - Array of device readings to plot.
+ * @param {Array} accessPoints - Array of access points used for position calculation.
+ * @param {number} width - Canvas width for layout calculations.
+ * @param {number} height - Canvas height for layout calculations.
+ * @param {Array} rooms - Array of room objects for position validation and room information.
+ * @param {string} searchTerm - Optional search term to highlight matching devices.
+ */
 function updateDevicePlot(g, readings, accessPoints, width, height, rooms, searchTerm = '') {
     g.selectAll('g.device').remove();
 
@@ -347,6 +466,15 @@ function updateDevicePlot(g, readings, accessPoints, width, height, rooms, searc
     }
 }
 
+/**
+ * Highlights devices matching a search term with distinct visual styling.
+ * Modifies the appearance of matching device circles to distinguish them from other devices.
+ * @param {string} searchTerm - The search term to match against device names and IDs.
+ * @param {D3Selection} g - The D3 SVG group element containing device visualizations.
+ * @param {Array} readings - Array of device readings for matching logic.
+ * @param {Array} accessPoints - Array of access points for position calculations.
+ * @param {Array} rooms - Array of room objects for position validation.
+ */
 function highlightDevice(searchTerm, g, readings, accessPoints, rooms) {
     g.selectAll('circle.device')
         .attr('fill', '#f5f5f7')
@@ -374,6 +502,14 @@ function highlightDevice(searchTerm, g, readings, accessPoints, rooms) {
 }
 
 // Simulation
+
+/**
+ * Generates simulated device signal readings for testing purposes.
+ * Creates realistic RSSI values from a random device to multiple access points.
+ * @param {Array} accessPoints - Array of access point objects to generate signals from.
+ * @param {number} levelId - The level ID to associate with the simulated reading.
+ * @returns {Object} Simulated device reading object with name, ID, signals, and timestamp.
+ */
 function simulateDeviceReadings(accessPoints, levelId) {
     const devices = [
         { id: 'DEV001', name: 'John' },
@@ -396,6 +532,28 @@ function simulateDeviceReadings(accessPoints, levelId) {
 }
 
 // Initialization
+
+/**
+ * Refreshes the device plot visualization based on current level and search term.
+ * Fetches the latest device readings and updates the visualization accordingly.
+ * @param {string} searchTerm - Optional search term for highlighting specific devices.
+ */
+async function refreshDeviceDisplay(searchTerm = '') {
+    try {
+        const { innerWidth: width, innerHeight: height } = window;
+        const currentReadsRaw = await fetchDeviceReadings(window.currentLevelId);
+        const currentReads = filterReadingsByLevel(currentReadsRaw, window.currentLevelId);
+        updateDevicePlot(window.zoomGroup, currentReads, window.accessPoints, width - 200, height, window.rooms, searchTerm);
+    } catch (error) {
+        console.error('Error refreshing device display:', error);
+    }
+}
+
+/**
+ * Initializes the entire application on page load.
+ * Sets up the visualization canvas, loads data from the API, initializes UI components,
+ * and attaches event listeners for user interactions including level switching, device search, and data simulation.
+ */
 async function initApp() {
     try {
         const levels = await fetchLevels();
@@ -415,14 +573,12 @@ async function initApp() {
         window.levels = levels;
         window.currentLevelId = currentLevelId;
 
-        // Filter readings to only those for the current level
         const filteredReads = filterReadingsByLevel(reads, currentLevelId);
 
-        // Add level selector
         initLevelSelector(levels);
 
         const canvas = d3.select('#canvas')
-            .attr('width', width - 200) // Subtract level picker width
+            .attr('width', width - 200)
             .attr('height', height - 60);
 
         const g = canvas.append('g').attr('class', 'zoom-group');
@@ -442,7 +598,6 @@ async function initApp() {
         updateSidebar(allReads);
         updateDevicePlot(window.zoomGroup, filteredReads, aps, width - 200, height, rooms);
 
-        // Event listeners
         document.getElementById('postButton').addEventListener('click', async () => {
             try {
                 const randomLevel = window.levels[Math.floor(Math.random() * window.levels.length)];
@@ -455,7 +610,6 @@ async function initApp() {
                     body: JSON.stringify(r)
                 });
 
-                // Re-fetch readings for current level and all
                 const [allReadsUpdated, updatedReadsRaw] = await Promise.all([
                     fetchDeviceReadings(),
                     fetchDeviceReadings(currentLevelId)
@@ -482,13 +636,10 @@ async function initApp() {
                         searchResultEl.classList.remove('show');
                         searchResultEl.innerHTML = '';
                     }
-                    const currentReadsRaw = await fetchDeviceReadings(window.currentLevelId);
-                    const currentReads = filterReadingsByLevel(currentReadsRaw, window.currentLevelId);
-                    updateDevicePlot(window.zoomGroup, currentReads, window.accessPoints, width - 200, height, window.rooms, searchTerm);
+                    await refreshDeviceDisplay();
                     return;
                 }
 
-                // Search across all devices
                 const allReads = await fetchDeviceReadings();
                 const allDevices = getLatestReadings(allReads);
                 const matchingDevice = allDevices.find(device =>
@@ -497,32 +648,22 @@ async function initApp() {
                 );
 
                 if (matchingDevice) {
-                    // Switch to the device's level
                     await switchLevel(matchingDevice.levelId);
-                    
-                    // Highlight the device on its level
-                    const currentReadsRaw = await fetchDeviceReadings(window.currentLevelId);
-                    const currentReads = filterReadingsByLevel(currentReadsRaw, window.currentLevelId);
-                    updateDevicePlot(window.zoomGroup, currentReads, window.accessPoints, width - 200, height, window.rooms, searchTerm);
+                    await refreshDeviceDisplay(searchTerm);
 
-                    // Compute room/position and show in search result area
                     if (searchResultEl) {
                         const pos = computeDevicePosition(window.accessPoints, matchingDevice.signals || [], window.rooms) || DEFAULT_POSITION;
                         const room = getRoomForPosition(pos.x, pos.y, window.rooms);
-                        const levelName = (window.levels || []).find(l => l.id == matchingDevice.levelId)?.name || matchingDevice.levelId;
+                        const levelName = (window.levels || []).find(l => l.id === matchingDevice.levelId)?.name || matchingDevice.levelId;
                         searchResultEl.innerHTML = `<strong>${matchingDevice.name}</strong> &mdash; Level: ${levelName}, Room: ${room}`;
-                        // show with class for animation
                         searchResultEl.classList.add('show');
                     }
                 } else {
-                    // No match found, keep current level view and hide result
                     if (searchResultEl) {
                         searchResultEl.classList.remove('show');
                         searchResultEl.innerHTML = '';
                     }
-                    const currentReadsRaw = await fetchDeviceReadings(window.currentLevelId);
-                    const currentReads = filterReadingsByLevel(currentReadsRaw, window.currentLevelId);
-                    updateDevicePlot(window.zoomGroup, currentReads, window.accessPoints, width - 200, height, window.rooms, searchTerm);
+                    await refreshDeviceDisplay(searchTerm);
                 }
             } catch (error) {
                 console.error('Error searching devices:', error);
