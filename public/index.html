@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Tracking</title>
+    <script src="d3.v7.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-content">
+            <div class="sidebar-section">
+                <h4>Devices</h4>
+                <div id="deviceList"></div>
+            </div>
+        </div>
+    </nav>
+    
+    <header class="header">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+            <svg class="toggle-icon open-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                <line x1="8" y1="8" x2="16" y2="16"/>
+                <line x1="16" y1="8" x2="8" y2="16"/>
+            </svg>
+            <svg class="toggle-icon close-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="6" y1="8" x2="18" y2="8"/>
+                <line x1="6" y1="12" x2="18" y2="12"/>
+                <line x1="6" y1="16" x2="18" y2="16"/>
+            </svg>
+        </button>
+        <div class="title-group">
+            <div class="title">Device Tracking</div>
+        </div>
+        <button id="postButton">Send signal</button>
+    </header>
+    
+    <main>
+        <div class="canvas-container">
+            <svg id="canvas"></svg>
+            <div id="tooltip"></div>        
+            <div class="search-container">
+                <input type="text" id="deviceSearch" placeholder="Search" />
+                <div id="searchResult" class="search-result"></div>
+            </div>
+        </div>
+    </main>
+    <div class="level-picker" id="levelPicker">
+        <div class="level-picker-header">
+            <h4>Floors</h4>
+        </div>
+        <div class="level-list" id="levelList"></div>
+    </div>
+</body>
+<script src="app.js"></script>
+</html>

@@ -1,0 +1,52 @@
+### Get Levels
+GET http://localhost:8383/levels
+
+### Get Access Points
+GET http://localhost:8383/access-points
+
+### Get Access Points for specific level
+GET http://localhost:8383/access-points?levelId=L001
+
+### Get Rooms
+GET http://localhost:8383/rooms
+
+### Get Rooms for specific level
+GET http://localhost:8383/rooms?levelId=L001
+
+### Push Device Reading
+POST http://localhost:8383/device-readings
+Content-Type: application/json
+
+{
+    "id": "D1",
+    "name": "John",
+    "signals": [
+        {"apId": "AP000001", "rssi": -45},
+        {"apId": "AP000002", "rssi": -60},
+        {"apId": "AP000003", "rssi": -70}
+    ],
+    "date": "2025-12-11T08:30:00Z",
+    "levelId": "L001"
+}
+
+### Update Device Reading
+PUT http://localhost:8383/device-readings
+Content-Type: application/json
+
+{
+  "id": "D1",
+  "name": "John",
+  "signals": [
+    { "apId": "AP000001", "rssi": -30 },
+    { "apId": "AP000002", "rssi": -45 },
+    { "apId": "AP000004", "rssi": -50 }
+  ],
+  "date": "2025-12-11T09:00:00Z",
+  "levelId": "L001"
+}
+
+### Get Device Readings
+GET http://localhost:8383/device-readings
+
+### Get Device Readings for specific level
+GET http://localhost:8383/device-readings?levelId=L001
