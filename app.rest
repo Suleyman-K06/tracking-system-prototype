@@ -1,24 +1,43 @@
-### Get Levels
+
+### Get All Levels
 GET http://localhost:8383/levels
 
-### Get Access Points
+### Get All Access Points
 GET http://localhost:8383/access-points
 
-### Get Access Points for specific level
+### Get Access Points for Specific Level
 GET http://localhost:8383/access-points?levelId=L001
 
-### Get Rooms
+### Get Access Points for Level L002
+GET http://localhost:8383/access-points?levelId=L002
+
+
+### Get All Rooms
 GET http://localhost:8383/rooms
 
-### Get Rooms for specific level
+### Get Rooms for Specific Level
 GET http://localhost:8383/rooms?levelId=L001
 
-### Push Device Reading
+### Get Rooms for Level L002
+GET http://localhost:8383/rooms?levelId=L002
+
+
+
+### Get All Device Readings
+GET http://localhost:8383/device-readings
+
+### Get Device Readings for Specific Level
+GET http://localhost:8383/device-readings?levelId=L001
+
+### Get Device Readings for Level L002
+GET http://localhost:8383/device-readings?levelId=L002
+
+### Create New Device Reading
 POST http://localhost:8383/device-readings
 Content-Type: application/json
 
 {
-    "id": "D1",
+    "id": "DEV001",
     "name": "John",
     "signals": [
         {"apId": "AP000001", "rssi": -45},
@@ -29,24 +48,50 @@ Content-Type: application/json
     "levelId": "L001"
 }
 
-### Update Device Reading
+### Create Another Device Reading
+POST http://localhost:8383/device-readings
+Content-Type: application/json
+
+{
+    "id": "DEV002",
+    "name": "Alice",
+    "signals": [
+        {"apId": "AP000001", "rssi": -50},
+        {"apId": "AP000002", "rssi": -55},
+        {"apId": "AP000003", "rssi": -65}
+    ],
+    "date": "2025-12-11T08:35:00Z",
+    "levelId": "L001"
+}
+
+### Update Existing Device Reading
 PUT http://localhost:8383/device-readings
 Content-Type: application/json
 
 {
-  "id": "D1",
-  "name": "John",
-  "signals": [
-    { "apId": "AP000001", "rssi": -30 },
-    { "apId": "AP000002", "rssi": -45 },
-    { "apId": "AP000004", "rssi": -50 }
-  ],
-  "date": "2025-12-11T09:00:00Z",
-  "levelId": "L001"
+    "id": "DEV001",
+    "name": "John",
+    "signals": [
+        {"apId": "AP000001", "rssi": -30},
+        {"apId": "AP000002", "rssi": -45},
+        {"apId": "AP000004", "rssi": -50}
+    ],
+    "date": "2025-12-11T09:00:00Z",
+    "levelId": "L001"
 }
 
-### Get Device Readings
-GET http://localhost:8383/device-readings
+### Create/Update Device Reading for Level L002
+PUT http://localhost:8383/device-readings
+Content-Type: application/json
 
-### Get Device Readings for specific level
-GET http://localhost:8383/device-readings?levelId=L001
+{
+    "id": "DEV003",
+    "name": "Bob",
+    "signals": [
+        {"apId": "AP000005", "rssi": -40},
+        {"apId": "AP000006", "rssi": -50},
+        {"apId": "AP000007", "rssi": -60}
+    ],
+    "date": "2025-12-11T10:00:00Z",
+    "levelId": "L002"
+}
